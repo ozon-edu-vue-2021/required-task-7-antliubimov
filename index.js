@@ -73,7 +73,7 @@ const getNoFriends = (people, friends, selfId) => {
   return people.filter(human => !friendsWithSelf.includes(human));
 };
 
-const getPopular = (list) => {
+const getPopularCount = (list) => {
   let popular = new Map();
   for (let item of list.values()) {
     let friends = item['friends'];
@@ -85,9 +85,9 @@ const getPopular = (list) => {
       }
     })
   }
-  console.log(popular);
   return popular;
 };
+const popular = [...sortMap(getPopularCount(peopleList), peopleList).keys()];
 
 const createListItem = (list, id, fn) => {
   const listItem = document.createElement('li');
@@ -129,14 +129,20 @@ const showContactDetails = (e) => {
   const noFriendsList = createDetailsList(peopleList, noFriends, getHuman);
   insertAfter(noFriendsList, noFriendsListTitle);
 
-  const popular = [...sortMap(getPopular(peopleList), peopleList).keys()];
   const popularList = createDetailsList(peopleList, popular, getHuman);
   insertAfter(popularList, popularListTitle);
 
   contactDetailsView.style.zIndex = '1';
   isContactsDetailsVisible = true;
+  //window.addEventListener('click', closeContactDetails);
 }
 
-
+const closeContactDetails = (e) => {
+  if (e.target !== contactDetailsView && isContactsDetailsVisible) {
+    contactDetailsView.style.zIndex = '0';
+    isContactsDetailsVisible = false;
+    window.removeEventListener('click', closeContactDetails);
+  }
+};
 
 contactsList.addEventListener('click', showContactDetails);

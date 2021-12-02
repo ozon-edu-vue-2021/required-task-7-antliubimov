@@ -13,7 +13,17 @@ const arrayToMap = function (arr) {
   let hashMap = new Map();
   arr.forEach(elem => hashMap.set(elem.id, elem));
   return hashMap;
-}
+};
+
+const sortMap = (myMap, list) => {
+  return new Map([...myMap.entries()].sort((a, b) => {
+    if (a[1] !== b[1]) {
+      return b[1] - a[1];
+    } else {
+      return list.get(a) < list.get(b);
+    }
+  }))
+};
 
 function insertAfter(newNode, existingNode) {
   existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);
@@ -30,7 +40,6 @@ const getPeople = async () => {
 
 const people = await getPeople();
 const peopleList = arrayToMap(people);
-
 const peopleListKeys = [...peopleList.keys()];
 
 const createPeopleList = (users, list) => {
@@ -46,21 +55,39 @@ const createPeopleList = (users, list) => {
 
 createPeopleList(peopleList, contactsList);
 
+const getHuman = (list, id) => {
+  if (list.has(id)) {
+    return list.get(id)['name'];
+  }
+};
+
 const getFriends = (list, id) => {
   if (list.has(id)) {
     return list.get(id)['friends'];
   }
 };
 
-const getHuman = (list, id) => {
-  if (list.has(id)) {
-    return list.get(id)['name'];
-  }
-}
+const getNoFriends = (people, friends, selfId) => {
+  const friendsWithSelf = [...friends];
+  friendsWithSelf.push(selfId);
+  return people.filter(human => !friendsWithSelf.includes(human));
+};
 
-const getNoFriends = (people, friends) => {
-  return people.filter(human => !friends.includes(human));
-}
+const getPopular = (list) => {
+  let popular = new Map();
+  for (let item of list.values()) {
+    let friends = item['friends'];
+    friends.forEach(friend => {
+      if (popular.has(friend)) {
+        popular.set(friend, popular.get(friend) + 1);
+      } else {
+        popular.set(friend, 1);
+      }
+    })
+  }
+  console.log(popular);
+  return popular;
+};
 
 const createListItem = (list, id, fn) => {
   const listItem = document.createElement('li');
@@ -90,16 +117,21 @@ const showContactDetails = (e) => {
     id = +(e.target.id);
   } else if (e.target.parentElement.tagName.toLowerCase() === 'li') {
     id = +(e.target.parentElement.id);
+  } else {
+    return;
   }
 
   const friends = getFriends(peopleList, id);
   let friendsList = createDetailsList(peopleList, friends, getHuman);
   insertAfter(friendsList, friendsListTitle);
 
-  const noFriends = getNoFriends(peopleListKeys, friends);
+  const noFriends = getNoFriends(peopleListKeys, friends, id);
   const noFriendsList = createDetailsList(peopleList, noFriends, getHuman);
   insertAfter(noFriendsList, noFriendsListTitle);
 
+  const popular = [...sortMap(getPopular(peopleList), peopleList).keys()];
+  const popularList = createDetailsList(peopleList, popular, getHuman);
+  insertAfter(popularList, popularListTitle);
 
   contactDetailsView.style.zIndex = '1';
   isContactsDetailsVisible = true;

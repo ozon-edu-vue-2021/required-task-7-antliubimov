@@ -2,12 +2,7 @@
 
 const contactsList = document.querySelector('.contacts-list');
 const contactDetailsView = document.querySelector('.details-view');
-const peopleLists = document.querySelectorAll('.people-title');
-const friendsListTitle = peopleLists[0];
-const noFriendsListTitle = peopleLists[1];
-const popularListTitle = peopleLists[2];
-const MAX_VISIBLE_PEOPLE = 3;
-let isContactsDetailsVisible = false;
+const peopleLists = contactDetailsView.querySelector('ul');
 
 const arrayToMap = function (arr) {
   let hashMap = new Map();
@@ -24,10 +19,6 @@ const sortMap = (myMap, list) => {
     }
   }))
 };
-
-function insertAfter(newNode, existingNode) {
-  existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);
-}
 
 const getPeople = async () => {
   try {
@@ -89,6 +80,13 @@ const getPopularCount = (list) => {
 };
 const popular = [...sortMap(getPopularCount(peopleList), peopleList).keys()];
 
+const createTitleItem = (title) => {
+  const listItem = document.createElement('li');
+  listItem.classList.add('people-title');
+  listItem.textContent = title;
+  return listItem;
+}
+
 const createListItem = (list, id, fn) => {
   const listItem = document.createElement('li');
   const listItemSpan = document.createElement('span');
@@ -102,45 +100,57 @@ const createListItem = (list, id, fn) => {
   return listItem;
 };
 
-const createDetailsList = (list, additionalList, fn) => {
+const createDetailsList = (list, additionalList, fn, title) => {
+  const MAX_VISIBLE_PEOPLE = 3;
   const fragment = document.createDocumentFragment();
+  fragment.appendChild(createTitleItem(title));
   for (let i = 0; i < MAX_VISIBLE_PEOPLE; i++) {
     fragment.appendChild(createListItem(list, additionalList[i], fn));
   }
   return fragment;
 };
 
+const createContactsDetails = (id) => {
+  const friends = getFriends(peopleList, id);
+  const friendsList = createDetailsList(peopleList, friends, getHuman, 'Друзья');
+
+  const noFriends = getNoFriends(peopleListKeys, friends, id);
+  const noFriendsList = createDetailsList(peopleList, noFriends, getHuman, 'Не в друзьях');
+
+  const popularList = createDetailsList(peopleList, popular, getHuman, 'Популярные люди');
+
+  const fragment = document.createDocumentFragment();
+  fragment.append(friendsList, noFriendsList, popularList);
+
+  peopleLists.appendChild(fragment);
+};
+
 const showContactDetails = (e) => {
   let id;
 
-  if (e.target.tagName.toLowerCase() === 'li') {
-    id = +(e.target.id);
-  } else if (e.target.parentElement.tagName.toLowerCase() === 'li') {
-    id = +(e.target.parentElement.id);
-  } else {
-    return;
+  let isClickInside = contactsList.contains(e.target);
+  if (isClickInside) {
+    if (e.target.tagName.toLowerCase() === 'li') {
+      id = +(e.target.id);
+    } else if (e.target.parentElement.tagName.toLowerCase() === 'li') {
+      id = +(e.target.parentElement.id);
+    } else {
+      return;
+    }
   }
 
-  const friends = getFriends(peopleList, id);
-  let friendsList = createDetailsList(peopleList, friends, getHuman);
-  insertAfter(friendsList, friendsListTitle);
-
-  const noFriends = getNoFriends(peopleListKeys, friends, id);
-  const noFriendsList = createDetailsList(peopleList, noFriends, getHuman);
-  insertAfter(noFriendsList, noFriendsListTitle);
-
-  const popularList = createDetailsList(peopleList, popular, getHuman);
-  insertAfter(popularList, popularListTitle);
+  createContactsDetails(id);
 
   contactDetailsView.style.zIndex = '1';
-  isContactsDetailsVisible = true;
-  //window.addEventListener('click', closeContactDetails);
+  window.addEventListener('click', closeContactDetails);
 }
 
 const closeContactDetails = (e) => {
-  if (e.target !== contactDetailsView && isContactsDetailsVisible) {
+  let isClickInsideContactList = contactsList.contains(e.target);
+
+  if (!isClickInsideContactList) {
+    peopleLists.innerHTML = '';
     contactDetailsView.style.zIndex = '0';
-    isContactsDetailsVisible = false;
     window.removeEventListener('click', closeContactDetails);
   }
 };
